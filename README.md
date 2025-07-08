@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-# edfi
-Fast, Simple and Minimal priority, Nano alternative editor for editing simple texts.
-=======
 # EDFI
 
 A lightweight, vim-like modal terminal text editor written in Rust using Ratatui.
@@ -100,4 +96,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ---
 
 Created by 0l3d
->>>>>>> f2b143d (helo)
