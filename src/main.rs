@@ -47,6 +47,7 @@ struct App {
     line_index: usize,
     input_mode: InputMode,
     scroll_ofst: usize,
+    scroll_hofst: usize,
     save_path: String,
     file_open_text: Vec<String>,
     file_opened: bool,
@@ -67,6 +68,7 @@ impl App {
             column_index: 0,
             line_index: 0,
             scroll_ofst: 0,
+	    scroll_hofst: 0,
             save_path: save_path_arg,
             file_open_text: file_text,
 	    file_opened: file_opened_arg,
@@ -282,17 +284,28 @@ impl App {
                     .title_position(block::Position::Top),
             );
         let visible_height = edit_area.height.saturating_sub(1) as usize;
-        let crsr = self.line_index;
+	let visible_width = edit_area.width as usize;
+        let crsrL = self.line_index;
+	let crsrC = self.column_index;
         let sheight = visible_height;
+	let swidth = edit_area.width as usize;
         let stop = self.scroll_ofst;
         let sbottom = self.scroll_ofst + sheight.saturating_sub(1);
 
-        if crsr > sbottom {
-            self.scroll_ofst = crsr - sheight + 1;
-        } else if crsr < stop {
-            self.scroll_ofst = crsr;
+        if crsrL > sbottom {
+            self.scroll_ofst = crsrL - sheight + 1;
+        } else if crsrL < stop {
+            self.scroll_ofst = crsrL;
         }
-        input = input.scroll((self.scroll_ofst as u16, 0));
+	
+	if self.column_index >= self.scroll_hofst + swidth {
+	    self.scroll_hofst = self.column_index.saturating_sub(swidth).saturating_add(1);
+	} else if self.column_index < self.scroll_hofst {
+	    self.scroll_hofst = self.column_index;
+	}
+	
+	
+        input = input.scroll((self.scroll_ofst as u16, self.scroll_hofst as u16));
 	
         frame.render_widget(input, edit_area);
 	frame.set_cursor_position(Position::new(

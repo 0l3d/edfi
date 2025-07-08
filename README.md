@@ -13,14 +13,13 @@ A lightweight, vim-like modal terminal text editor written in Rust using Ratatui
 - **Auto-scrolling**: Smooth scrolling when cursor moves beyond visible area
 - **Line Management**: Automatic line creation and deletion
 - **Backspace Handling**: Intelligent line merging and deletion
-- **Horizontal Scroll**: Not implemented yet.
 
 ### Modes
 
 #### Normal Mode
 - `i` - Enter editing mode
 - `s` - Save current file
-- `o` - Open/reload file
+- `o` - Open/reload file (not implemented yet.)
 - `q` - Quit editor
 - Arrow keys - Move cursor
 - `Home` - Move to beginning of line
