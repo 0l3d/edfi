@@ -97,6 +97,8 @@ _[ffetch](https://github.com/0l3d/ffetch) configuration with EDFI_
 
 ### Find
 
+<img width="931" height="985" alt="image" src="https://github.com/user-attachments/assets/a587c1b6-3164-4980-a5df-81294e0e8cc2" />
+
 ## Planned Features
 
 - **Search Functionality**: Find and replace text within files
