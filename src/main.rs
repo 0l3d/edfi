@@ -2,14 +2,16 @@ use color_eyre::Result;
 use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
     layout::Position,
-    style::{Color, Style, Stylize},
+    style::{Color, Style},
     text::{Line, Span, Text},
     widgets::{block, Block, Paragraph},
     DefaultTerminal, Frame,
 };
 use std::{
     env,
+    fmt::format,
     fs::{read_to_string, write, File},
+    mem,
     path::Path,
 };
 
@@ -47,28 +49,34 @@ fn main() -> Result<()> {
 fn syntax_highln(line: &str) -> Line {
     let mut words: Vec<Span> = Vec::new();
     let mut membuf: String = String::new();
-    let mut space = false;
-    let mut string = false;
+    let mut string: Option<char> = None;
+    let mut escape = false;
+
+    let token_chars = "(){}[],;+-*/=%<>!&|^~:";
 
     for c in line.chars() {
-        if string {
+        if let Some(quote) = string {
             membuf.push(c);
-            if c == '"' {
-                string = false;
+            if escape {
+                escape = false;
+            } else if c == '\\' {
+                escape = true;
+            } else if c == quote {
+                string = None;
                 words.push(Span::styled(
                     membuf.clone(),
                     Style::default().fg(Color::Yellow),
                 ));
                 membuf.clear();
             }
-        } else if c == '"' {
+        } else if c == '"' || c == '\'' {
             if !membuf.is_empty() {
                 words.push(rust_tokens(&membuf));
                 membuf.clear();
             }
             membuf.push(c);
-            string = true;
-        } else if c.is_whitespace() {
+            string = Some(c);
+        } else if c.is_whitespace() || token_chars.contains(c) {
             if !membuf.is_empty() {
                 words.push(rust_tokens(&membuf));
                 membuf.clear();
@@ -80,7 +88,7 @@ fn syntax_highln(line: &str) -> Line {
     }
 
     if !membuf.is_empty() {
-        if string {
+        if string.is_some() {
             words.push(Span::styled(
                 membuf.clone(),
                 Style::default().fg(Color::Yellow),
@@ -88,6 +96,31 @@ fn syntax_highln(line: &str) -> Line {
         } else {
             words.push(rust_tokens(&membuf));
         }
+    }
+
+    Line::from(words)
+}
+
+fn find_impl(line: &str, lookingfor: String) -> Line {
+    let mut words: Vec<Span> = Vec::new();
+
+    let mut last_index = 0;
+
+    for (start, part) in line.match_indices(&lookingfor) {
+        if start > last_index {
+            words.push(Span::raw(line[last_index..start].to_string()));
+        }
+
+        words.push(Span::styled(
+            part.to_string(),
+            Style::default().bg(Color::White).fg(Color::Black),
+        ));
+
+        last_index = start + part.len();
+    }
+
+    if last_index < line.len() {
+        words.push(Span::raw(line[last_index..].to_string()));
     }
 
     Line::from(words)
@@ -105,11 +138,14 @@ struct App {
     file_opened: bool,
     info_text: String,
     saved: bool,
+    find_mode: bool,
+    find_str: String,
 }
 
 enum InputMode {
     Normal,
     Editing,
+    Find,
 }
 
 impl App {
@@ -126,6 +162,8 @@ impl App {
             file_opened: file_opened_arg,
             info_text: String::new(),
             saved: false,
+            find_mode: false,
+            find_str: String::new(),
         }
     }
 
@@ -228,6 +266,8 @@ impl App {
         self.code[self.line_index] = "".to_string();
     }
 
+    fn find_mode(&mut self) {}
+
     fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
         if self.file_opened {
             self.open_file();
@@ -246,6 +286,7 @@ impl App {
                         }
                         KeyCode::Char('s') => self.save_file(),
                         KeyCode::Char('o') => self.open_file(),
+                        KeyCode::Char('/') => self.input_mode = InputMode::Find,
                         KeyCode::Char('d') => self.delete_line(),
                         KeyCode::Left => self.move_cursor_left(),
                         KeyCode::Right => self.move_cursor_right(),
@@ -283,6 +324,9 @@ impl App {
                                 }
                             }
                         }
+                        KeyCode::Tab => {
+                            self.column_index += 2;
+                        }
                         KeyCode::Left => self.move_cursor_left(),
                         KeyCode::Right => self.move_cursor_right(),
                         KeyCode::Up => self.move_cursor_up(),
@@ -290,7 +334,21 @@ impl App {
                         KeyCode::Esc => self.input_mode = InputMode::Normal,
                         _ => {}
                     },
+                    InputMode::Find if key.kind == KeyEventKind::Press => match key.code {
+                        KeyCode::Char(to_find) => {
+                            self.find_str.push(to_find);
+                            self.input_mode = InputMode::Find;
+                        }
+                        KeyCode::Esc => self.input_mode = InputMode::Normal,
+                        KeyCode::Left => self.move_cursor_left(),
+                        KeyCode::Right => self.move_cursor_right(),
+                        KeyCode::Up => self.move_cursor_up(),
+                        KeyCode::Down => self.move_cursor_down(),
+
+                        _ => {}
+                    },
                     InputMode::Editing => {}
+                    InputMode::Find => {}
                 }
             }
         }
@@ -307,12 +365,12 @@ impl App {
         self.info_text = format!("File saved to path: <{}>", self.save_path,);
     }
 
-    fn is_that_rustcode(&mut self) {
-        todo!("rust code not implemented yet.");
+    fn normal_mode_info(&mut self) {
+        self.info_text = format!("<{}> - edit: i, save: s, find: /, quit: q", self.save_path);
     }
 
-    fn normal_mode_info(&mut self) {
-        self.info_text = format!("<{}> - edit: i, save: s, quit: q", self.save_path);
+    fn find_mode_info(&mut self) {
+        self.info_text = format!("Search in <{} for quit: ESC>", self.save_path);
     }
 
     fn draw(&mut self, frame: &mut Frame) {
@@ -325,16 +383,28 @@ impl App {
                 }
             }
             InputMode::Editing => self.editing_mode_info(),
+            InputMode::Find => self.find_mode_info(),
         }
 
         let edit_area = frame.area();
+        let text_lines: Vec<Line> = match self.input_mode {
+            InputMode::Normal | InputMode::Editing => {
+                self.find_str.clear();
+                self.code.iter().map(|line| syntax_highln(line)).collect()
+            }
+            InputMode::Find => self
+                .code
+                .iter()
+                .map(|line| find_impl(line, self.find_str.clone()))
+                .collect(),
+        };
 
-        let text_lines: Vec<Line> = self.code.iter().map(|line| syntax_highln(line)).collect();
         let text = Text::from(text_lines);
         let mut input = Paragraph::new(text)
             .style(match self.input_mode {
                 InputMode::Normal => Style::default().fg(Color::Gray),
                 InputMode::Editing => Style::default().fg(Color::White),
+                InputMode::Find => Style::default().fg(Color::White),
             })
             .block(
                 Block::new()
