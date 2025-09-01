@@ -50,7 +50,7 @@ fn syntax_highln(line: &str) -> Line {
     let mut string: Option<char> = None;
     let mut escape = false;
 
-    let token_chars = "(){}[],;+-*/=%<>!&|^~:";
+    let token_chars = "(){}[],;+-*=%<>!&|^~:";
 
     for c in line.chars() {
         if let Some(quote) = string {
@@ -300,12 +300,25 @@ impl App {
                         KeyCode::End => self.column_index = self.code[self.line_index].len(),
                         KeyCode::Backspace => {
                             if !self.code.is_empty() && self.line_index < self.code.len() {
-                                if self.code[self.line_index].len() == 0 && self.line_index != 0 {
+                                if self.code[self.line_index].is_empty() && self.line_index != 0 {
                                     self.code.remove(self.line_index);
                                     self.move_cursor_up();
                                     self.column_index = self.code[self.line_index].len();
+                                } else if self.code[self.line_index]
+                                    .chars()
+                                    .nth(self.column_index - 1)
+                                    .map(|c| c == ' ')
+                                    .expect("Failed to get chars from string.")
+                                    && self.code[self.line_index]
+                                        .chars()
+                                        .nth(self.column_index - 2)
+                                        .map(|c| c == ' ')
+                                        .expect("Failed to get chars from string.")
+                                {
+                                    self.delete_char();
+                                    self.delete_char();
                                 } else if self.column_index == 0
-                                    && self.code[self.line_index].len() == 0
+                                    && self.code[self.line_index].is_empty()
                                 {
                                     if self.line_index > 0 {
                                         let current_line = self.code[self.line_index].clone();
@@ -319,7 +332,8 @@ impl App {
                             }
                         }
                         KeyCode::Tab => {
-                            self.column_index += 2;
+                            self.enter_char(' ');
+                            self.enter_char(' ');
                         }
                         KeyCode::Left => self.move_cursor_left(),
                         KeyCode::Right => self.move_cursor_right(),
