@@ -13,12 +13,6 @@ A lightweight, vim-like modal terminal text editor written in Rust using Ratatui
 - **Auto-scrolling**: Smooth horizontal and vertical scrolling when cursor moves beyond visible area
 - **Line Management**: Automatic line creation, deletion, and merging
 - **Backspace Handling**: Intelligent line merging and deletion
-- **Rust Syntax Highlighting**: Built-in syntax highlighting for Rust code including:
-  - Keywords (fn, let, mut, if, else, etc.) - Light Blue
-  - Data types (i32, String, Vec, etc.) - Green
-  - Numbers - Magenta
-  - Strings - Yellow
-  - Comments - Black
 - **Visual Feedback**: Clear indication of current mode and file status
 - **Line Deletion**: Delete entire lines in normal mode
 - **Find Mode**: Search in the file.
@@ -112,10 +106,6 @@ _[ffetch](https://github.com/0l3d/ffetch) configuration with EDFI_
 
 This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE.md) file for details.
 
-## Contributing
+## Author
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-
----
-
-Created by 0l3d
+Created by **0l3d**
