@@ -42,7 +42,7 @@ A lightweight, vim-like modal terminal text editor written in Rust using Ratatui
 
 #### Find Mode
 
-- ESC - Return to nomrla mode
+- `ESC` - Return to normal mode
 - Arrow keys - Move cursor
 - Any printable character - Search in the file
 
