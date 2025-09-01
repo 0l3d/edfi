@@ -101,7 +101,6 @@ _[ffetch](https://github.com/0l3d/ffetch) configuration with EDFI_
 
 ## Planned Features
 
-- **Search Functionality**: Find and replace text within files
 - **Lua Script Support**: Extend editor functionality with Lua scripting
 - **Enhanced Syntax Highlighting**: Support for more programming languages
 - **Multiple File Support**: Work with multiple files simultaneously
