@@ -9,9 +9,7 @@ use ratatui::{
 };
 use std::{
     env,
-    fmt::format,
     fs::{read_to_string, write, File},
-    mem,
     path::Path,
 };
 
@@ -20,7 +18,7 @@ use rust::rust_tokens;
 
 fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();
-    let mut save_path = String::new();
+    let save_path;
     let mut file_text: Vec<String> = Vec::new();
     let mut file_opened: bool = false;
     if args.len() > 1 {
@@ -138,7 +136,6 @@ struct App {
     file_opened: bool,
     info_text: String,
     saved: bool,
-    find_mode: bool,
     find_str: String,
 }
 
@@ -162,7 +159,6 @@ impl App {
             file_opened: file_opened_arg,
             info_text: String::new(),
             saved: false,
-            find_mode: false,
             find_str: String::new(),
         }
     }
@@ -266,8 +262,6 @@ impl App {
         self.code[self.line_index] = "".to_string();
     }
 
-    fn find_mode(&mut self) {}
-
     fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
         if self.file_opened {
             self.open_file();
@@ -338,6 +332,9 @@ impl App {
                         KeyCode::Char(to_find) => {
                             self.find_str.push(to_find);
                             self.input_mode = InputMode::Find;
+                        }
+                        KeyCode::Backspace => {
+                            self.find_str.pop();
                         }
                         KeyCode::Esc => self.input_mode = InputMode::Normal,
                         KeyCode::Left => self.move_cursor_left(),
@@ -416,16 +413,16 @@ impl App {
                     .title_position(block::Position::Top),
             );
         let visible_height = edit_area.height.saturating_sub(1) as usize;
-        let crsrL = self.line_index;
+        let crsrl = self.line_index;
         let sheight = visible_height;
         let swidth = edit_area.width as usize;
         let stop = self.scroll_ofst;
         let sbottom = self.scroll_ofst + sheight.saturating_sub(1);
 
-        if crsrL > sbottom {
-            self.scroll_ofst = crsrL - sheight + 1;
-        } else if crsrL < stop {
-            self.scroll_ofst = crsrL;
+        if crsrl > sbottom {
+            self.scroll_ofst = crsrl - sheight + 1;
+        } else if crsrl < stop {
+            self.scroll_ofst = crsrl;
         }
 
         if self.column_index >= self.scroll_hofst + swidth {
