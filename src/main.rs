@@ -370,7 +370,10 @@ impl App {
     }
 
     fn find_mode_info(&mut self) {
-        self.info_text = format!("Search in <{} for quit: ESC>", self.save_path);
+        self.info_text = format!(
+            "Search in <{} for quit: ESC> : {}",
+            self.save_path, self.find_str
+        );
     }
 
     fn draw(&mut self, frame: &mut Frame) {
