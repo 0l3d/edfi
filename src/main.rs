@@ -454,7 +454,7 @@ impl App {
                     "".bg(Color::Gray).fg(Color::LightBlue),
                     "".fg(Color::Gray).bg(Color::DarkGray),
                     format!(
-                        " <{}> - x:{}|y:{} - mode: i - quit: ESC ",
+                        " <{}> - x:{}|y:{} - quit: ESC ",
                         self.save_path, self.column_index, self.line_index,
                     )
                     .fg(Color::White)
@@ -467,7 +467,7 @@ impl App {
                 vec![
                     " Find ".bg(Color::Red),
                     "".bg(Color::Gray).fg(Color::Red),
-                    "".fg(Color::Gray),
+                    "".fg(Color::Gray).bg(Color::DarkGray),
                     format!(
                         " Search in <{} for quit: ESC> : {}",
                         self.save_path, self.find_str
