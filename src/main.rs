@@ -258,6 +258,9 @@ impl App {
         }
     }
 
+    fn undo(&mut self) {}
+    fn redo(&mut self) {}
+
     fn delete_line(&mut self) {
         self.code[self.line_index] = "".to_string();
     }
