@@ -3,7 +3,6 @@ use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
     layout::Position,
     style::{Color, Style},
-    symbols::line,
     text::{Line, Span, Text},
     widgets::{block, Block, Paragraph},
     DefaultTerminal, Frame,
@@ -473,10 +472,11 @@ impl App {
         let text_lines: Vec<Line> = match self.input_mode {
             InputMode::Normal | InputMode::Editing => {
                 self.find_str.clear();
+                let width = self.code.len().to_string().len();
                 self.code
                     .iter()
                     .enumerate()
-                    .map(|(i, code_line)| syntax_highln(format!("{i:>4} {code_line}")))
+                    .map(|(i, code_line)| syntax_highln(format!("{i:>width$} {code_line}")))
                     .collect()
             }
             InputMode::Find => self
