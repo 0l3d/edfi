@@ -27,7 +27,10 @@ fn main() -> Result<()> {
         if !file_path.is_empty() {
             if Path::new(file_path).exists() {
                 let content = read_to_string(file_path).expect("Error: reading file error: ");
-                let lines: Vec<String> = content.lines().map(|line| line.to_string()).collect();
+                let mut lines: Vec<String> = content.lines().map(|line| line.to_string()).collect();
+                if lines.is_empty() {
+                    lines.push(" ".to_string());
+                }
                 file_text = lines;
                 file_opened = true;
             } else {
@@ -124,6 +127,13 @@ fn find_impl(line: &str, lookingfor: String) -> Line {
     Line::from(words)
 }
 
+#[derive(Clone)]
+struct History {
+    code: Vec<String>,
+    line_pos: usize,
+    col_pos: usize,
+}
+
 struct App {
     code: Vec<String>,
     column_index: usize,
@@ -137,6 +147,8 @@ struct App {
     info_text: String,
     saved: bool,
     find_str: String,
+    history_undo: Vec<History>,
+    history_redo: Vec<History>,
 }
 
 enum InputMode {
@@ -160,6 +172,8 @@ impl App {
             info_text: String::new(),
             saved: false,
             find_str: String::new(),
+            history_undo: Vec::new(),
+            history_redo: Vec::new(),
         }
     }
 
@@ -258,8 +272,44 @@ impl App {
         }
     }
 
-    fn undo(&mut self) {}
-    fn redo(&mut self) {}
+    fn take_snapshot(&mut self) {
+        let snapshot = History {
+            code: self.code.clone(),
+            line_pos: self.line_index,
+            col_pos: self.column_index,
+        };
+        self.history_undo.push(snapshot);
+        self.history_redo.clear();
+    }
+    fn undo(&mut self) {
+        if let Some(snapshot) = self.history_undo.pop() {
+            let current = History {
+                code: self.code.clone(),
+                line_pos: self.line_index,
+                col_pos: self.column_index,
+            };
+            self.history_redo.push(current);
+
+            self.code = snapshot.code;
+            self.line_index = snapshot.line_pos;
+            self.column_index = snapshot.col_pos;
+        }
+    }
+
+    fn redo(&mut self) {
+        if let Some(snapshot) = self.history_redo.pop() {
+            let current = History {
+                code: self.code.clone(),
+                line_pos: self.line_index,
+                col_pos: self.column_index,
+            };
+            self.history_undo.push(current);
+
+            self.code = snapshot.code;
+            self.line_index = snapshot.line_pos;
+            self.column_index = snapshot.col_pos;
+        }
+    }
 
     fn delete_line(&mut self) {
         self.code[self.line_index] = "".to_string();
@@ -285,6 +335,8 @@ impl App {
                         KeyCode::Char('o') => self.open_file(),
                         KeyCode::Char('/') => self.input_mode = InputMode::Find,
                         KeyCode::Char('d') => self.delete_line(),
+                        KeyCode::Char('u') => self.undo(),
+                        KeyCode::Char('r') => self.redo(),
                         KeyCode::Left => self.move_cursor_left(),
                         KeyCode::Right => self.move_cursor_right(),
                         KeyCode::Up => self.move_cursor_up(),
@@ -294,29 +346,38 @@ impl App {
                         _ => {}
                     },
                     InputMode::Editing if key.kind == KeyEventKind::Press => match key.code {
-                        KeyCode::Enter => self.new_line(),
+                        KeyCode::Enter => {
+                            self.take_snapshot();
+                            self.new_line();
+                        }
                         KeyCode::Char(to_insert) => {
+                            self.take_snapshot();
+
                             self.saved = false;
                             self.enter_char(to_insert);
+
+                            self.history_redo.clear();
                         }
                         KeyCode::Home => self.column_index = 0,
                         KeyCode::End => self.column_index = self.code[self.line_index].len(),
                         KeyCode::Backspace => {
+                            self.take_snapshot();
                             if !self.code.is_empty() && self.line_index < self.code.len() {
                                 if self.code[self.line_index].is_empty() && self.line_index != 0 {
                                     self.code.remove(self.line_index);
                                     self.move_cursor_up();
                                     self.column_index = self.code[self.line_index].len();
-                                } else if self.code[self.line_index]
-                                    .chars()
-                                    .nth(self.column_index - 1)
-                                    .map(|c| c == ' ')
-                                    .expect("Failed to get chars from string.")
+                                } else if self.column_index >= 2
+                                    && self.code[self.line_index]
+                                        .chars()
+                                        .nth(self.column_index - 1)
+                                        .map(|c| c == ' ')
+                                        .unwrap_or(false)
                                     && self.code[self.line_index]
                                         .chars()
                                         .nth(self.column_index - 2)
                                         .map(|c| c == ' ')
-                                        .expect("Failed to get chars from string.")
+                                        .unwrap_or(false)
                                 {
                                     self.delete_char();
                                     self.delete_char();
@@ -329,12 +390,13 @@ impl App {
                                         self.move_cursor_up();
                                         self.code[self.line_index].push_str(&current_line);
                                     }
-                                } else {
+                                } else if self.column_index > 0 {
                                     self.delete_char();
                                 }
                             }
                         }
                         KeyCode::Tab => {
+                            self.take_snapshot();
                             self.enter_char(' ');
                             self.enter_char(' ');
                         }
@@ -380,7 +442,10 @@ impl App {
     }
 
     fn normal_mode_info(&mut self) {
-        self.info_text = format!("<{}> - edit: i, save: s, find: /, quit: q", self.save_path);
+        self.info_text = format!(
+            "<{}> - edit: i, save: s, find: /, undo-redo: u-r, quit: q",
+            self.save_path
+        );
     }
 
     fn find_mode_info(&mut self) {

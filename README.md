@@ -16,6 +16,7 @@ A lightweight, vim-like modal terminal text editor written in Rust using Ratatui
 - **Visual Feedback**: Clear indication of current mode and file status
 - **Line Deletion**: Delete entire lines in normal mode
 - **Find Mode**: Search in the file.
+- **Undo/Redo**: History management for editing operations.
 
 ### Modes
 
@@ -99,7 +100,6 @@ _[ffetch](https://github.com/0l3d/ffetch) configuration with EDFI_
 - **Enhanced Syntax Highlighting**: Support for more programming languages
 - **Multiple File Support**: Work with multiple files simultaneously
 - **Configuration System**: Customizable key bindings and settings
-- **Undo/Redo**: History management for editing operations
 - **Line Numbers**: Optional line numbering display
 
 ## License
