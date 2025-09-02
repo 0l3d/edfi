@@ -432,7 +432,7 @@ impl App {
 
     fn editing_mode_info(&mut self) {
         self.info_text = format!(
-            "line <{}> - x:{}|y:{} - mode: i - quit: ESC",
+            "<{}> - x:{}|y:{} - mode: i - quit: ESC",
             self.save_path, self.column_index, self.line_index,
         );
     }
@@ -443,14 +443,14 @@ impl App {
 
     fn normal_mode_info(&mut self) {
         self.info_text = format!(
-            "line <{}> - edit: i, save: s, find: /, undo-redo: u-r, quit: q",
+            "<{}> - edit: i, save: s, find: /, undo-redo: u-r, quit: q",
             self.save_path
         );
     }
 
     fn find_mode_info(&mut self) {
         self.info_text = format!(
-            "line Search in <{} for quit: ESC> : {}",
+            "Search in <{} for quit: ESC> : {}",
             self.save_path, self.find_str
         );
     }
