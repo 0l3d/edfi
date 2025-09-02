@@ -1,10 +1,10 @@
 use color_eyre::Result;
 use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
-    layout::Position,
-    style::{Color, Style},
+    layout::{Constraint, Layout, Position},
+    style::{Color, Style, Stylize},
     text::{Line, Span, Text},
-    widgets::{block, Block, Paragraph},
+    widgets::Paragraph,
     DefaultTerminal, Frame,
 };
 use std::{
@@ -144,7 +144,6 @@ struct App {
     save_path: String,
     file_open_text: Vec<String>,
     file_opened: bool,
-    info_text: String,
     saved: bool,
     find_str: String,
     history_undo: Vec<History>,
@@ -169,7 +168,6 @@ impl App {
             save_path: save_path_arg,
             file_open_text: file_text,
             file_opened: file_opened_arg,
-            info_text: String::new(),
             saved: false,
             find_str: String::new(),
             history_undo: Vec::new(),
@@ -430,49 +428,67 @@ impl App {
         }
     }
 
-    fn editing_mode_info(&mut self) {
-        self.info_text = format!(
-            "<{}> - x:{}|y:{} - mode: i - quit: ESC",
-            self.save_path, self.column_index, self.line_index,
-        );
-    }
-
-    fn save_mode_info(&mut self) {
-        self.info_text = format!("File saved to path: <{}>", self.save_path,);
-    }
-
-    fn normal_mode_info(&mut self) {
-        self.info_text = format!(
-            "<{}> - edit: i, save: s, find: /, undo-redo: u-r, quit: q",
-            self.save_path
-        );
-    }
-
-    fn find_mode_info(&mut self) {
-        self.info_text = format!(
-            "Search in <{} for quit: ESC> : {}",
-            self.save_path, self.find_str
-        );
-    }
-
     fn draw(&mut self, frame: &mut Frame) {
-        match self.input_mode {
-            InputMode::Normal => {
-                if self.saved {
-                    self.save_mode_info();
-                } else {
-                    self.normal_mode_info();
-                }
-            }
-            InputMode::Editing => self.editing_mode_info(),
-            InputMode::Find => self.find_mode_info(),
-        }
+        let vertical = Layout::vertical([Constraint::Length(1), Constraint::Min(1)]);
+        let [status_area, edit_area] = vertical.areas(frame.area());
 
-        let edit_area = frame.area();
+        let (msg, style) = match self.input_mode {
+            InputMode::Normal => (
+                vec![
+                    " NORMAL ".bg(Color::Yellow),
+                    "".bg(Color::Gray).fg(Color::Yellow),
+                    "".fg(Color::Gray).bg(Color::DarkGray),
+                    format!(
+                        "  <{}> - edit: i, save: s, find: /, undo-redo: u-r, quit: q ",
+                        self.save_path
+                    )
+                    .fg(Color::White)
+                    .bg(Color::DarkGray),
+                    "".fg(Color::DarkGray),
+                ],
+                Style::default().fg(Color::Black),
+            ),
+            InputMode::Editing => (
+                vec![
+                    " EDIT ".bg(Color::LightBlue),
+                    "".bg(Color::Gray).fg(Color::LightBlue),
+                    "".fg(Color::Gray).bg(Color::DarkGray),
+                    format!(
+                        " <{}> - x:{}|y:{} - mode: i - quit: ESC ",
+                        self.save_path, self.column_index, self.line_index,
+                    )
+                    .fg(Color::White)
+                    .bg(Color::DarkGray),
+                    "".fg(Color::DarkGray),
+                ],
+                Style::default().fg(Color::Black),
+            ),
+            InputMode::Find => (
+                vec![
+                    " Find ".bg(Color::Red),
+                    "".bg(Color::Gray).fg(Color::Red),
+                    "".fg(Color::Gray),
+                    format!(
+                        " Search in <{} for quit: ESC> : {}",
+                        self.save_path, self.find_str
+                    )
+                    .fg(Color::White)
+                    .bg(Color::DarkGray),
+                    "".fg(Color::DarkGray),
+                ],
+                Style::default().fg(Color::Black),
+            ),
+        };
+
+        let status_bar_text = Text::from(Line::from(msg)).patch_style(style);
+        let status_bar = Paragraph::new(status_bar_text);
+
+        frame.render_widget(status_bar, status_area);
+
+        let width = self.code.len().to_string().len();
         let text_lines: Vec<Line> = match self.input_mode {
             InputMode::Normal | InputMode::Editing => {
                 self.find_str.clear();
-                let width = self.code.len().to_string().len();
                 self.code
                     .iter()
                     .enumerate()
@@ -487,18 +503,11 @@ impl App {
         };
 
         let text = Text::from(text_lines);
-        let mut input = Paragraph::new(text)
-            .style(match self.input_mode {
-                InputMode::Normal => Style::default().fg(Color::Gray),
-                InputMode::Editing => Style::default().fg(Color::White),
-                InputMode::Find => Style::default().fg(Color::White),
-            })
-            .block(
-                Block::new()
-                    .title(self.info_text.to_string())
-                    .title_style(Style::default().fg(Color::Black).bg(Color::Gray))
-                    .title_position(block::Position::Top),
-            );
+        let mut input = Paragraph::new(text).style(match self.input_mode {
+            InputMode::Normal => Style::default().fg(Color::Gray),
+            InputMode::Editing => Style::default().fg(Color::White),
+            InputMode::Find => Style::default().fg(Color::White),
+        });
         let visible_height = edit_area.height.saturating_sub(1) as usize;
         let crsrl = self.line_index;
         let sheight = visible_height;
@@ -519,11 +528,10 @@ impl App {
         }
 
         input = input.scroll((self.scroll_ofst as u16, self.scroll_hofst as u16));
-
         frame.render_widget(input, edit_area);
         frame.set_cursor_position(Position::new(
-            edit_area.x + self.column_index as u16 + 5,
-            edit_area.y + (self.line_index - self.scroll_ofst) as u16 + 1,
+            edit_area.x + self.column_index as u16 + width as u16 + 1,
+            edit_area.y + (self.line_index - self.scroll_ofst) as u16,
         ));
     }
 }
