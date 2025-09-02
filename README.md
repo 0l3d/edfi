@@ -83,16 +83,17 @@ This creates a file called "new_file" by default.
 
 ### Configuration
 
-![image](https://github.com/user-attachments/assets/045df880-4f64-4c44-94cd-b9ab68a0c39e)
+<img width="1120" height="693" alt="image" src="https://github.com/user-attachments/assets/56f764a1-5ecf-44dc-a1b7-2a064d6ba73f" />
+
 _[ffetch](https://github.com/0l3d/ffetch) configuration with EDFI_
 
 ### Rust Code
 
-![image](https://github.com/user-attachments/assets/30d39b31-6844-448b-bd3d-5b377ee8e529)
+<img width="1096" height="973" alt="image" src="https://github.com/user-attachments/assets/bf3e6aab-4891-4975-9d1b-b03216dea352" />
 
 ### Find
 
-<img width="931" height="985" alt="image" src="https://github.com/user-attachments/assets/a587c1b6-3164-4980-a5df-81294e0e8cc2" />
+<img width="1023" height="972" alt="image" src="https://github.com/user-attachments/assets/fe04dce3-6965-4410-a653-b2221f99acd8" />
 
 ## Planned Features
 
