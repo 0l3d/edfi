@@ -3,6 +3,7 @@ use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
     layout::Position,
     style::{Color, Style},
+    symbols::line,
     text::{Line, Span, Text},
     widgets::{block, Block, Paragraph},
     DefaultTerminal, Frame,
@@ -47,7 +48,7 @@ fn main() -> Result<()> {
     app_result
 }
 
-fn syntax_highln(line: &str) -> Line {
+fn syntax_highln(line: String) -> Line<'static> {
     let mut words: Vec<Span> = Vec::new();
     let mut membuf: String = String::new();
     let mut string: Option<char> = None;
@@ -432,7 +433,7 @@ impl App {
 
     fn editing_mode_info(&mut self) {
         self.info_text = format!(
-            "<{}> - x:{}|y:{} - mode: i - quit: ESC",
+            "line <{}> - x:{}|y:{} - mode: i - quit: ESC",
             self.save_path, self.column_index, self.line_index,
         );
     }
@@ -443,14 +444,14 @@ impl App {
 
     fn normal_mode_info(&mut self) {
         self.info_text = format!(
-            "<{}> - edit: i, save: s, find: /, undo-redo: u-r, quit: q",
+            "line <{}> - edit: i, save: s, find: /, undo-redo: u-r, quit: q",
             self.save_path
         );
     }
 
     fn find_mode_info(&mut self) {
         self.info_text = format!(
-            "Search in <{} for quit: ESC> : {}",
+            "line Search in <{} for quit: ESC> : {}",
             self.save_path, self.find_str
         );
     }
@@ -472,7 +473,11 @@ impl App {
         let text_lines: Vec<Line> = match self.input_mode {
             InputMode::Normal | InputMode::Editing => {
                 self.find_str.clear();
-                self.code.iter().map(|line| syntax_highln(line)).collect()
+                self.code
+                    .iter()
+                    .enumerate()
+                    .map(|(i, code_line)| syntax_highln(format!("{i:>4} {code_line}")))
+                    .collect()
             }
             InputMode::Find => self
                 .code
@@ -517,7 +522,7 @@ impl App {
 
         frame.render_widget(input, edit_area);
         frame.set_cursor_position(Position::new(
-            edit_area.x + self.column_index as u16,
+            edit_area.x + self.column_index as u16 + 5,
             edit_area.y + (self.line_index - self.scroll_ofst) as u16 + 1,
         ));
     }

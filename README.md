@@ -100,7 +100,6 @@ _[ffetch](https://github.com/0l3d/ffetch) configuration with EDFI_
 - **Enhanced Syntax Highlighting**: Support for more programming languages
 - **Multiple File Support**: Work with multiple files simultaneously
 - **Configuration System**: Customizable key bindings and settings
-- **Line Numbers**: Optional line numbering display
 
 ## License
 
