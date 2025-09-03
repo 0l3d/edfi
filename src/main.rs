@@ -11,6 +11,7 @@ use std::{
     env,
     fs::{read_to_string, write, File},
     path::Path,
+    thread, time,
 };
 
 mod rust;
@@ -141,6 +142,7 @@ struct App {
     input_mode: InputMode,
     scroll_ofst: usize,
     scroll_hofst: usize,
+    info_text: String,
     save_path: String,
     file_open_text: Vec<String>,
     file_opened: bool,
@@ -164,6 +166,7 @@ impl App {
             column_index: 0,
             line_index: 0,
             scroll_ofst: 0,
+            info_text: String::new(),
             scroll_hofst: 0,
             save_path: save_path_arg,
             file_open_text: file_text,
@@ -407,6 +410,7 @@ impl App {
                     },
                     InputMode::Find if key.kind == KeyEventKind::Press => match key.code {
                         KeyCode::Char(to_find) => {
+                            self.saved = false;
                             self.find_str.push(to_find);
                             self.input_mode = InputMode::Find;
                         }
@@ -428,37 +432,76 @@ impl App {
         }
     }
 
+    pub fn normal_info_text(&mut self) {
+        self.info_text = format!(
+            "  <{}> - edit: i, save: s, find: /, undo-redo: u-r, quit: q ",
+            self.save_path
+        );
+    }
+
+    pub fn edit_info_text(&mut self) {
+        self.info_text = format!(
+            " <{}> - x:{}|y:{} - quit: ESC ",
+            self.save_path, self.column_index, self.line_index,
+        );
+    }
+
+    pub fn find_info_text(&mut self) {
+        self.info_text = format!(
+            " Search in <{} for quit: ESC> : {}",
+            self.save_path, self.find_str
+        );
+    }
+
+    pub fn save_info_text(&mut self) {
+        self.info_text = format!(" File saved to <{}>", self.save_path);
+    }
+
     fn draw(&mut self, frame: &mut Frame) {
         let vertical = Layout::vertical([Constraint::Length(1), Constraint::Min(1)]);
         let [status_area, edit_area] = vertical.areas(frame.area());
 
+        let helped_layout = Layout::vertical([
+            Constraint::Length(1),
+            Constraint::Length(2),
+            Constraint::Min(1),
+        ]);
+
+        match self.input_mode {
+            InputMode::Normal => {
+                if !self.saved {
+                    self.normal_info_text();
+                } else {
+                    self.save_info_text();
+                }
+            }
+            InputMode::Editing => self.edit_info_text(),
+            InputMode::Find => self.find_info_text(),
+        }
+
         let (msg, style) = match self.input_mode {
             InputMode::Normal => (
                 vec![
-                    " NORMAL ".bg(Color::Yellow),
+                    " Normal ".bg(Color::Yellow),
                     "".bg(Color::Gray).fg(Color::Yellow),
                     "".fg(Color::Gray).bg(Color::DarkGray),
-                    format!(
-                        "  <{}> - edit: i, save: s, find: /, undo-redo: u-r, quit: q ",
-                        self.save_path
-                    )
-                    .fg(Color::White)
-                    .bg(Color::DarkGray),
+                    self.info_text
+                        .to_string()
+                        .fg(Color::White)
+                        .bg(Color::DarkGray),
                     "".fg(Color::DarkGray),
                 ],
                 Style::default().fg(Color::Black),
             ),
             InputMode::Editing => (
                 vec![
-                    " EDIT ".bg(Color::LightBlue),
+                    " Edit ".bg(Color::LightBlue),
                     "".bg(Color::Gray).fg(Color::LightBlue),
                     "".fg(Color::Gray).bg(Color::DarkGray),
-                    format!(
-                        " <{}> - x:{}|y:{} - quit: ESC ",
-                        self.save_path, self.column_index, self.line_index,
-                    )
-                    .fg(Color::White)
-                    .bg(Color::DarkGray),
+                    self.info_text
+                        .to_string()
+                        .fg(Color::White)
+                        .bg(Color::DarkGray),
                     "".fg(Color::DarkGray),
                 ],
                 Style::default().fg(Color::Black),
@@ -468,12 +511,10 @@ impl App {
                     " Find ".bg(Color::Red),
                     "".bg(Color::Gray).fg(Color::Red),
                     "".fg(Color::Gray).bg(Color::DarkGray),
-                    format!(
-                        " Search in <{} for quit: ESC> : {}",
-                        self.save_path, self.find_str
-                    )
-                    .fg(Color::White)
-                    .bg(Color::DarkGray),
+                    self.info_text
+                        .to_string()
+                        .fg(Color::White)
+                        .bg(Color::DarkGray),
                     "".fg(Color::DarkGray),
                 ],
                 Style::default().fg(Color::Black),
