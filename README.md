@@ -97,7 +97,7 @@ _[ffetch](https://github.com/0l3d/ffetch) configuration with EDFI_
 
 ## Planned Features
 
-- **Lua Script Support**: Extend editor functionality with Lua scripting
+- **Rhai Script Support**: Extend editor functionality with Rhai scripting
 - **Enhanced Syntax Highlighting**: Support for more programming languages
 - **Multiple File Support**: Work with multiple files simultaneously
 - **Configuration System**: Customizable key bindings and settings
