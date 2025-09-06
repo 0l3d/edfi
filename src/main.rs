@@ -11,7 +11,6 @@ use std::{
     env,
     fs::{read_to_string, write, File},
     path::Path,
-    thread, time,
 };
 
 mod rust;
@@ -103,7 +102,7 @@ fn syntax_highln(line: String) -> Line<'static> {
     Line::from(words)
 }
 
-fn find_impl(line: &str, lookingfor: String) -> Line {
+fn find_impl(line: String, lookingfor: String) -> Line<'static> {
     let mut words: Vec<Span> = Vec::new();
 
     let mut last_index = 0;
@@ -126,6 +125,10 @@ fn find_impl(line: &str, lookingfor: String) -> Line {
     }
 
     Line::from(words)
+}
+
+fn select_impl(line: String, startp: u32, endp: u32) -> Line<'static> {
+    Line::from("select mode")
 }
 
 #[derive(Clone)]
@@ -156,6 +159,7 @@ enum InputMode {
     Normal,
     Editing,
     Find,
+    Select,
 }
 
 impl App {
@@ -338,6 +342,7 @@ impl App {
                         KeyCode::Char('d') => self.delete_line(),
                         KeyCode::Char('u') => self.undo(),
                         KeyCode::Char('r') => self.redo(),
+                        KeyCode::Char('v') => self.input_mode = InputMode::Select,
                         KeyCode::Left => self.move_cursor_left(),
                         KeyCode::Right => self.move_cursor_right(),
                         KeyCode::Up => self.move_cursor_up(),
@@ -425,8 +430,17 @@ impl App {
 
                         _ => {}
                     },
+                    InputMode::Select if key.kind == KeyEventKind::Press => match key.code {
+                        KeyCode::Left => {}
+                        KeyCode::Right => {}
+                        KeyCode::Up => {}
+                        KeyCode::Down => {}
+                        KeyCode::Esc => self.input_mode = InputMode::Normal,
+                        _ => {}
+                    },
                     InputMode::Editing => {}
                     InputMode::Find => {}
+                    InputMode::Select => {}
                 }
             }
         }
@@ -457,15 +471,21 @@ impl App {
         self.info_text = format!(" File saved to <{}>", self.save_path);
     }
 
+    pub fn select_info_text(&mut self) {
+        self.info_text = format!(
+            "Selection x:{}, y:{}, <{}>",
+            self.column_index, self.line_index, self.save_path
+        );
+    }
+
     fn draw(&mut self, frame: &mut Frame) {
         let vertical = Layout::vertical([Constraint::Length(1), Constraint::Min(1)]);
         let [status_area, edit_area] = vertical.areas(frame.area());
-
-        let helped_layout = Layout::vertical([
-            Constraint::Length(1),
-            Constraint::Length(2),
-            Constraint::Min(1),
-        ]);
+        // let helped_layout = Layout::vertical([
+        // Constraint::Length(1),
+        // Constraint::Length(2),
+        // Constraint::Min(1),
+        // ]);
 
         match self.input_mode {
             InputMode::Normal => {
@@ -477,6 +497,7 @@ impl App {
             }
             InputMode::Editing => self.edit_info_text(),
             InputMode::Find => self.find_info_text(),
+            InputMode::Select => self.select_info_text(),
         }
 
         let (msg, style) = match self.input_mode {
@@ -519,6 +540,19 @@ impl App {
                 ],
                 Style::default().fg(Color::Black),
             ),
+            InputMode::Select => (
+                vec![
+                    " Select ".bg(Color::Green),
+                    "".bg(Color::Gray).fg(Color::Green),
+                    "".fg(Color::Gray).bg(Color::DarkGray),
+                    self.info_text
+                        .to_string()
+                        .fg(Color::White)
+                        .bg(Color::DarkGray),
+                    "".fg(Color::DarkGray),
+                ],
+                Style::default().fg(Color::Black),
+            ),
         };
 
         let status_bar_text = Text::from(Line::from(msg)).patch_style(style);
@@ -539,7 +573,12 @@ impl App {
             InputMode::Find => self
                 .code
                 .iter()
-                .map(|line| find_impl(line, self.find_str.clone()))
+                .map(|line| find_impl(line.to_string(), self.find_str.clone()))
+                .collect(),
+            InputMode::Select => self
+                .code
+                .iter()
+                .map(|line| find_impl(line.to_string(), self.find_str.clone()))
                 .collect(),
         };
 
@@ -548,6 +587,7 @@ impl App {
             InputMode::Normal => Style::default().fg(Color::Gray),
             InputMode::Editing => Style::default().fg(Color::White),
             InputMode::Find => Style::default().fg(Color::White),
+            InputMode::Select => Style::default().fg(Color::White),
         });
         let visible_height = edit_area.height.saturating_sub(1) as usize;
         let crsrl = self.line_index;
