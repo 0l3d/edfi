@@ -52,7 +52,7 @@ A lightweight, vim-like modal terminal text editor written in Rust using Ratatui
 Make sure you have Rust installed, then:
 
 ```bash
-git clone https://github.com/0l3d/edfi.git
+git clone https://git.sr.ht/~oled/edfi
 cd edfi
 cargo build --release
 ```
